@@ -1,0 +1,31 @@
+name: "TestConvSKNet"
+input: "data"
+input_dim: 1
+input_dim: 20
+input_dim: 526
+input_dim: 526
+layer {
+  name: "conv2"
+  type: "ConvolutionSK"
+  bottom: "data"
+  top: "conv2"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 50
+    kernel_size: 5
+    stride: 1
+    kstride: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+

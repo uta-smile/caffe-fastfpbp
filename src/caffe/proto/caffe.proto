@@ -457,6 +457,9 @@ message ConvolutionParameter {
     CUDNN = 2;
   }
   optional Engine engine = 15 [default = DEFAULT];
+  optional uint32 kstride = 16 [default = 1]; // The stride of kernel pixel (equal in Y, X)
+  optional uint32 kstride_h = 17; // The kernel pixel stride height
+  optional uint32 kstride_w = 18; // The kernel pixel stride width
 }
 
 message DataParameter {
@@ -691,6 +694,9 @@ message PoolingParameter {
   // If global_pooling then it will pool over the size of the bottom by doing
   // kernel_h = bottom->height and kernel_w = bottom->width
   optional bool global_pooling = 12 [default = false];
+  optional uint32 kstride = 13 [default = 1]; // The stride (equal in Y, X) of kernel pixels
+  optional uint32 kstride_h = 14; // The kernel pixel stride height
+  optional uint32 kstride_w = 15; // The kernel pixel stride width
 }
 
 message PowerParameter {

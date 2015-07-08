@@ -296,7 +296,6 @@ __global__ void AvePoolBackward(const int nthreads, const Dtype* const top_diff,
   }
 }
 
-
 template <typename Dtype>
 __global__ void StoPoolBackward(const int nthreads,
     const Dtype* const rand_idx, const Dtype* const top_diff,
