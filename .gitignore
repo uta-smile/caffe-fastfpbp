@@ -65,6 +65,8 @@ models/*
 *.binaryproto
 *leveldb
 *lmdb
+!models/zx_lenet_is/
+!models/zx_lenet_is/*.caffemodel
 
 # build, distribute, and bins (+ python proto bindings)
 build
