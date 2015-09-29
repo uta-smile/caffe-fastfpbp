@@ -83,6 +83,80 @@ template void im2col_sk_gpu<double>(const double* data_im, const int channels,
     double* data_col);
 
 template <typename Dtype>
+__global__ void col2im_sk_gpu_kernel(const int n, const Dtype* data_col,
+    const int height, const int width, const int channels,
+    const int patch_h, const int patch_w,
+    const int ext_patch_h, const int ext_patch_w,
+    const int pad_h, const int pad_w,
+    const int stride_h, const int stride_w,
+    const int kstride_h, const int kstride_w,
+    const int height_col, const int width_col,
+    Dtype* data_im) {
+  CUDA_KERNEL_LOOP(index, n) {
+    Dtype val = 0;
+    int w = index % width + pad_w;
+    int h = (index / width) % height + pad_h;
+    int c = index / (width * height);
+    // compute the start and end of the output
+    int width_col_1 = width_col - 1;
+    int height_col_1 = height_col - 1;
+    int w_col_start = (w < ext_patch_w) ? w % kstride_w : (w - ext_patch_w)+ 1;
+    int w_col_end = (w >= width_col) ?  width_col_1 - (width_col_1 - w_col_start) % kstride_w : w;
+    int h_col_start = (h < ext_patch_h) ? h % kstride_h : (h - ext_patch_h) + 1;
+    int h_col_end = (h >= height_col) ? height_col_1 - (height_col_1 - h_col_start) % kstride_h : h;
+    int w_num = (w - w_col_start) / kstride_w;
+    int h_num = (h - h_col_start) / kstride_h;
+
+    int coeff_w_idx = height_col * width_col;
+    int coeff_h_idx = patch_w * coeff_w_idx;
+    int offset = c * patch_h * coeff_h_idx;
+    for (int h_col = h_col_start, h_idx = h_num; h_col <= h_col_end; h_col += kstride_h, --h_idx) {
+      for (int w_col = w_col_start, w_idx = w_num; w_col <= w_col_end; w_col += kstride_w, --w_idx) {
+        //int c_col = c * patch_h * patch_w + (h - h_col) / kstride_h * patch_w + (w - w_col) / kstride_w;
+        //int c_col = c * patch_h * patch_w + h_idx * patch_w + w_idx;
+        //val += data_col[(c_col * height_col + h_col) * width_col + w_col];
+        val += data_col[offset + h_idx * coeff_h_idx + w_idx * coeff_w_idx + h_col * width_col + w_col];
+      }
+    }
+
+    data_im[index] = val;
+  }
+}
+
+template <typename Dtype>
+void col2im_sk_gpu(const Dtype* data_col, const int channels,
+    const int height, const int width, const int patch_h, const int patch_w,
+    const int pad_h, const int pad_w, const int stride_h,
+    const int stride_w, const int kstride_h, const int kstride_w,
+    Dtype* data_im) {
+  if (stride_w > 1 || stride_h > 1 || pad_h > 0 || pad_w > 0)
+    LOG(FATAL) << "stride greater than 1 or pad greater than 0 not tested in col2im_sk_gpu().";
+  int ext_patch_h = (patch_h - 1) * kstride_h + 1;
+  int ext_patch_w = (patch_w - 1) * kstride_w + 1;
+  int height_col = (height + 2 * pad_h - ext_patch_h) / stride_h + 1;
+  int width_col = (width + 2 * pad_w - ext_patch_w) / stride_w + 1;
+  int num_kernels = channels * height * width;
+
+  col2im_sk_gpu_kernel<Dtype><<<CAFFE_GET_BLOCKS(num_kernels),
+                             CAFFE_CUDA_NUM_THREADS>>>(
+      num_kernels, data_col, height, width, channels,
+      patch_h, patch_w, ext_patch_h, ext_patch_w,
+      pad_h, pad_w, stride_h, stride_w, kstride_h, kstride_w,
+      height_col, width_col, data_im);
+  CUDA_POST_KERNEL_CHECK;
+}
+
+// Explicit instantiation
+template void col2im_sk_gpu<float>(const float* data_col, const int channels,
+    const int height, const int width, const int patch_h, const int patch_w,
+    const int pad_h, const int pad_w, const int stride_h,
+    const int stride_w, const int kstride_h, const int kstride_w, float* data_im);
+template void col2im_sk_gpu<double>(const double* data_col, const int channels,
+    const int height, const int width, const int patch_h, const int patch_w,
+    const int pad_h, const int pad_w, const int stride_h,
+    const int stride_w, const int kstride_h, const int kstride_w, double* data_im);
+
+template <typename Dtype>
 __global__ void im2col_gpu_kernel(const int n, const Dtype* data_im,
     const int height, const int width, const int kernel_h, const int kernel_w,
     const int pad_h, const int pad_w,

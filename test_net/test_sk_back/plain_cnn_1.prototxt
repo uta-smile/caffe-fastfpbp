@@ -1,0 +1,122 @@
+name: "map_bp"
+layer {
+  name: "data"
+  type: "DummyData"
+  top: "data"
+  top: "label"
+  dummy_data_param{
+    num: 1
+    channels: 3
+    height: 260
+    width: 260
+    data_filler {
+      type:"uniform"
+      min: 0
+      max: 255
+    }
+    num: 1
+    channels: 1
+    height: 128
+    width: 128
+    data_filler {
+      type: "uniform"
+      min: 0
+      max: 31
+    }
+  }
+}
+layer {
+  name: "conv1"
+  type: "Convolution"
+  bottom: "data"
+  top: "conv1"
+  convolution_param {
+    num_output: 50
+    kernel_size: 6
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool1"
+  type: "Pooling"
+  pooling_param {
+    pool: MAX
+    kernel_size: 8
+    stride: 1
+  }
+  bottom: "conv1"
+  top: "pool1"
+}
+layer {
+  name: "tanh1"
+  type: "TanH"
+  bottom: "pool1"
+  top: "pool1"
+}
+layer {
+  name: "conv2"
+  type: "ConvolutionSK"
+  bottom: "pool1"
+  top: "conv2"
+  convolution_param {
+    num_output: 50
+    kernel_size: 3
+    stride: 1
+    kstride: 8
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool2"
+  type: "PoolingSK"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 1
+    kstride: 8
+  }
+  bottom: "conv2"
+  top: "pool2"
+}
+layer {
+  name: "tanh2"
+  type: "TanH"
+  bottom: "pool2"
+  top: "pool2"
+}
+layer {
+  name: "conv3"
+  type: "ConvolutionSK"
+  bottom: "pool2"
+  top: "conv3"
+  convolution_param {
+    num_output: 32
+    kernel_size: 7
+    stride: 1
+    kstride: 16
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "loss"
+  type: "SoftmaxWithLoss"
+  bottom: "conv3"
+  bottom: "label"
+  top: "loss"
+}

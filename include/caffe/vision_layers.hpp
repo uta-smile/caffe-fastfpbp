@@ -262,7 +262,7 @@ protected:
 private:
 	// wrap im2col/col2im so we don't have to remember the (long) argument lists
 	inline void conv_im2col_cpu(const Dtype* data, Dtype* col_buff) {
-		LOG(INFO) << "CONV_SK_IM2COL";
+		// LOG(INFO) << "CONV_SK_IM2COL";
 		im2col_sk_cpu(data, conv_in_channels_, conv_in_height_, conv_in_width_,
 				kernel_h_, kernel_w_, pad_h_, pad_w_, stride_h_, stride_w_,
 				kstride_h_, kstride_w_, col_buff);
@@ -274,15 +274,15 @@ private:
 	}
 #ifndef CPU_ONLY
 	inline void conv_im2col_gpu(const Dtype* data, Dtype* col_buff) {
-		LOG(INFO) << "GPU CONV_SK_IM2COL";
+		// LOG(INFO) << "GPU CONV_SK_IM2COL";
 		im2col_sk_gpu(data, conv_in_channels_, conv_in_height_, conv_in_width_,
 				kernel_h_, kernel_w_, pad_h_, pad_w_, stride_h_, stride_w_,
 				kstride_h_, kstride_w_, col_buff);
 	}
 	inline void conv_col2im_gpu(const Dtype* col_buff, Dtype* data) {
-		col2im_gpu(col_buff, conv_in_channels_, conv_in_height_, conv_in_width_,
+		col2im_sk_gpu(col_buff, conv_in_channels_, conv_in_height_, conv_in_width_,
 				kernel_h_, kernel_w_, pad_h_, pad_w_, stride_h_, stride_w_,
-				data);
+				kstride_h_, kstride_w_, data);
 	}
 #endif
 

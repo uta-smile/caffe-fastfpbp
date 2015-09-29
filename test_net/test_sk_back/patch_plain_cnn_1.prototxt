@@ -1,0 +1,119 @@
+name: "patch_cnn"
+layers {
+  name: "data"
+  type: DUMMY_DATA
+  top: "data"
+  top: "label"
+  dummy_data_param{
+    num: 128 
+    channels: 3
+    height: 133
+    width: 133
+    data_filler {
+      type:"uniform"
+      min: 0
+      max: 255
+    }
+    num: 128
+    channels: 1
+    height: 1
+    width: 1
+    data_filler {
+      type: "uniform"
+      min: 0
+      max: 31
+    }
+  }
+}
+layers {
+  name: "conv1"
+  type: CONVOLUTION
+  bottom: "data"
+  top: "conv1"
+  convolution_param {
+    num_output: 50
+    kernel_size: 6
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layers {
+  name: "pool1"
+  type: POOLING
+  pooling_param {
+    pool: MAX
+    kernel_size: 8
+    stride: 8
+  }
+  bottom: "conv1"
+  top: "pool1"
+}
+layers{
+  name: "tanh1"
+  type: TANH
+  bottom: "pool1"
+  top: "pool1"
+}
+layers {
+  name: "conv2"
+  type: CONVOLUTION
+  bottom: "pool1"
+  top: "conv2"
+  convolution_param {
+    num_output: 50
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layers {
+  name: "pool2"
+  type: POOLING
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+  bottom: "conv2"
+  top: "pool2"
+}
+layers{
+  name: "tanh2"
+  type: TANH
+  bottom: "pool2"
+  top: "pool2"
+}
+layers {
+  name: "conv3"
+  type: CONVOLUTION
+  bottom: "pool2"
+  top: "conv3"
+  convolution_param {
+    num_output: 32
+    kernel_size: 7
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layers {
+  name: "loss"
+  type: SOFTMAX_LOSS
+  bottom: "conv3"
+  bottom: "label"
+  top: "loss"
+}

@@ -224,10 +224,92 @@ void PoolingSKLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   return;
 }
 
-template<typename Dtype>
+template <typename Dtype>
+__global__ void MaxPoolBackward(const int nthreads, const Dtype* top_diff,
+    const int* mask, const Dtype* top_mask, const int num, const int channels,
+    const int height, const int width, const int pooled_height, const int pooled_width,
+    const int kernel_h, const int kernel_w, const int ext_kernel_h, const int ext_kernel_w,
+    const int stride_h, const int stride_w, const int kstride_h, const int kstride_w,
+    const int pad_h, const int pad_w,
+    Dtype* bottom_diff) {
+  CUDA_KERNEL_LOOP(index, nthreads) {
+    // find out the local index
+    // find out the local offset
+    int w = index % width;
+    int h = (index / width) % height;
+    int c = (index / width / height) % channels;
+    int n = index / width / height / channels;
+
+    int pooled_height_1 = pooled_height - 1;
+    int pooled_width_1 = pooled_width - 1;
+    int phstart =
+        (h < ext_kernel_h) ? h % kstride_h : (h - ext_kernel_h) + 1;
+    int phend = (h >= pooled_height) ? pooled_height_1 - (pooled_height_1 - phstart) % kstride_h : h;
+    int pwstart =
+        (w < ext_kernel_w) ? w % kstride_w : (w - ext_kernel_w) + 1;
+    int pwend = (w >= pooled_width) ? pooled_width_1 - (pooled_width_1 - pwstart) % kstride_w : w;
+
+    Dtype gradient = 0;
+    int offset = (n * channels + c) * pooled_height * pooled_width;
+    top_diff += offset;
+    if (mask) {
+      mask += offset;
+      for (int ph = phstart; ph <= phend; ph += kstride_h) {
+        for (int pw = pwstart; pw <= pwend; pw += kstride_w) {
+          if (mask[ph * pooled_width + pw] == h * width + w) {
+            gradient += top_diff[ph * pooled_width + pw];
+          }
+        }
+      }
+    } else {
+      mask += offset;
+      for (int ph = phstart; ph <= phend; ph += kstride_h) {
+        for (int pw = pwstart; pw <= pwend; pw += kstride_w) {
+          if (top_mask[ph * pooled_width + pw] == h * width + w) {
+            gradient += top_diff[ph * pooled_width + pw];
+          }
+        }
+      }
+    }
+    bottom_diff[index] = gradient;
+  }
+}
+
+template <typename Dtype>
 void PoolingSKLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
-	      const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
-	NOT_IMPLEMENTED;
+      const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
+  const Dtype* top_diff = top[0]->gpu_diff();
+  Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
+  const int count = bottom[0]->count();
+  caffe_gpu_set(count, Dtype(0.), bottom_diff);
+  // We'll output the mask to top[1] if it's of size >1.
+  const bool use_top_mask = top.size() > 1;
+  const int* mask = NULL;
+  const Dtype* top_mask = NULL;
+
+  int ext_kernel_h = (kernel_h_ - 1) * kstride_h_ + 1;
+  int ext_kernel_w = (kernel_w_ - 1) * kstride_w_ + 1;
+
+  switch (this->layer_param_.pooling_param().pool()) {
+  case PoolingParameter_PoolMethod_MAX:
+    if (use_top_mask) {
+      top_mask = top[1]->gpu_data();
+    } else {
+      mask = max_idx_.gpu_data();
+    }
+    // NOLINT_NEXT_LINE(whitespace/operators)
+    MaxPoolBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
+        count, top_diff, mask, top_mask, top[0]->num(), channels_,
+        height_, width_, pooled_height_, pooled_width_,
+        kernel_h_, kernel_w_, ext_kernel_h, ext_kernel_w,
+        stride_h_, stride_w_, kstride_h_, kstride_w_,
+        pad_h_, pad_w_,
+        bottom_diff);
+    break;
+  default:
+    LOG(FATAL) << "Unknown or unsupported pooling method in Backward_gpu().";
+  }
+  CUDA_POST_KERNEL_CHECK;
 }
 
 INSTANTIATE_LAYER_GPU_FUNCS(PoolingSKLayer);
