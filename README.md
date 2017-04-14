@@ -14,3 +14,13 @@ Free free to cite us if you think our code help your research.
     	publisher={Springer International Publishing}
     }
 
+Our following paper is also based on this implementation, which you might also want to take a look.
+
+@inproceedings{xu2016detecting,
+  title={Detecting 10,000 Cells in One Second},
+  author={Xu, Zheng and Huang, Junzhou},
+  booktitle={International Conference on Medical Image Computing and Computer-Assisted Intervention},
+  pages={676--684},
+  year={2016},
+  organization={Springer}
+}
