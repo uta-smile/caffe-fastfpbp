@@ -27,10 +27,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV CAFFE_ROOT=/opt/caffe-fastfpbp/
 WORKDIR $CAFFE_ROOT
 
-# FIXME: use ARG instead of ENV once DockerHub supports this
-# https://github.com/docker/hub-feedback/issues/460
-ENV CLONE_TAG=1.0
-
 RUN git clone https://github.com/uta-smile/caffe-fastfpbp.git . && \
     pip install --upgrade pip && \
     cd python && for req in $(cat requirements.txt) pydot; do pip install $req; done && cd .. && \
@@ -45,4 +41,4 @@ RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 
 WORKDIR /workspace
 
-CMD sh -c "ln -s /dev/null /dev/raw1394"
+CMD sh -c "ln -s /dev/null /dev/raw1394"; bash
